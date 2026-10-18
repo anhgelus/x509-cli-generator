@@ -1,0 +1,119 @@
+package main
+
+import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"flag"
+	"os"
+)
+
+func main() {
+	if len(os.Args) < 2 {
+		println(
+			"Invalid usage.\n" +
+				"Usage: x509 <common_name> [options]\n\n" +
+				"To see options: x509 test -h\n",
+		)
+		os.Exit(1)
+	}
+	cn := os.Args[1]
+	flags := flag.NewFlagSet("options", flag.PanicOnError)
+	pathParent := flags.String("parent", "", "path to the PEM encoded parent")
+	ca := flags.Bool("can-sign", false, "if the certificate can sign")
+	ext := flags.Int("ext", -1, "x509 extension key usage (Go int)")
+	is224 := flags.Bool("p224", false, "use a P-226 curve")
+	_ = flags.Bool("p256", false, "use a P-256 curve")
+	is384 := flags.Bool("p384", false, "use a P-384 curve")
+	is521 := flags.Bool("p521", false, "use a P-521 curve")
+	if len(os.Args) != 2 {
+		_ = flags.Parse(os.Args[2:])
+	}
+	curve := elliptic.P256()
+	switch {
+	case *is521:
+		curve = elliptic.P521()
+	case *is384:
+		curve = elliptic.P384()
+	case *is224:
+		curve = elliptic.P224()
+	}
+	var parent *x509.Certificate
+	var parentPriv *ecdsa.PrivateKey
+	if len(*pathParent) != 0 {
+		b, err := os.ReadFile(*pathParent)
+		if err != nil {
+			panic(err)
+		}
+		for len(b) != 0 {
+			var bl *pem.Block
+			bl, b = pem.Decode(b)
+			switch bl.Type {
+			case "CERTIFICATE":
+				parent, err = x509.ParseCertificate(bl.Bytes)
+				if err != nil {
+					panic(err)
+				}
+			case "PRIVATE KEY":
+				k, err := x509.ParsePKCS8PrivateKey(bl.Bytes)
+				if err != nil {
+					panic(err)
+				}
+				parentPriv = k.(*ecdsa.PrivateKey)
+			default:
+				panic("unknown PEM type " + bl.Type)
+			}
+		}
+	}
+	templ := x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: cn,
+		},
+		IsCA:                  *ca,
+		BasicConstraintsValid: *ca,
+		KeyUsage:              x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+	}
+	if templ.IsCA {
+		templ.KeyUsage |= x509.KeyUsageCertSign
+	}
+	if *ext != -1 {
+		templ.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsage(*ext)}
+	}
+	priv, err := ecdsa.GenerateKey(curve, nil)
+	if err != nil {
+		panic(err)
+	}
+	if parent == nil {
+		parent = &templ
+		parentPriv = priv
+	}
+	b, err := x509.CreateCertificate(rand.Reader, &templ, parent, &priv.PublicKey, parentPriv)
+	if err != nil {
+		panic(err)
+	}
+	var buf bytes.Buffer
+	err = pem.Encode(&buf, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: b,
+	})
+	if err != nil {
+		panic(err)
+	}
+	b, err = x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		panic(err)
+	}
+	err = pem.Encode(&buf, &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: b,
+	})
+	if err != nil {
+		panic(err)
+	}
+	os.Stdout.Write(buf.Bytes())
+}
