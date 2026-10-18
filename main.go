@@ -22,12 +22,12 @@ func main() {
 		os.Exit(1)
 	}
 	cn := os.Args[1]
-	flags := flag.NewFlagSet("options", flag.PanicOnError)
+	flags := flag.NewFlagSet("options", flag.ExitOnError)
 	pathParent := flags.String("parent", "", "path to the PEM encoded parent")
 	ca := flags.Bool("can-sign", false, "if the certificate can sign")
 	ext := flags.Int("ext", -1, "x509 extension key usage (Go int)")
 	is224 := flags.Bool("p224", false, "use a P-226 curve")
-	_ = flags.Bool("p256", false, "use a P-256 curve")
+	_ = flags.Bool("p256", false, "use a P-256 curve (default)")
 	is384 := flags.Bool("p384", false, "use a P-384 curve")
 	is521 := flags.Bool("p521", false, "use a P-521 curve")
 	if len(os.Args) != 2 {
