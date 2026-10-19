@@ -88,7 +88,6 @@ func main() {
 		IsCA:                  *ca,
 		BasicConstraintsValid: *ca,
 		KeyUsage:              x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		NotBefore:             now.Add(notBefore.dur),
 		NotAfter:              now.Add(notAfter.dur),
 		DNSNames:              dns.Content,
