@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"os"
+	"time"
 )
 
 func main() {
@@ -31,6 +32,10 @@ func main() {
 	_ = flags.Bool("p256", false, "use a P-256 curve (default)")
 	is384 := flags.Bool("p384", false, "use a P-384 curve")
 	is521 := flags.Bool("p521", false, "use a P-521 curve")
+	var notAfter Duration
+	flags.Var(&notAfter, "not-after", "certificate cannot be used after this relative date (default: 30d)")
+	var notBefore Duration
+	flags.Var(&notBefore, "not-before", "certificate cannot be used before this relative date")
 	if len(os.Args) != 2 {
 		_ = flags.Parse(os.Args[2:])
 	}
@@ -70,6 +75,10 @@ func main() {
 			}
 		}
 	}
+	if !notAfter.has {
+		notAfter.dur = 30 * 24 * time.Hour
+	}
+	now := time.Now()
 	templ := x509.Certificate{
 		Subject: pkix.Name{
 			CommonName: cn,
@@ -78,6 +87,8 @@ func main() {
 		BasicConstraintsValid: *ca,
 		KeyUsage:              x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		NotBefore:             now.Add(notBefore.dur),
+		NotAfter:              now.Add(notAfter.dur),
 	}
 	if templ.IsCA {
 		templ.KeyUsage |= x509.KeyUsageCertSign

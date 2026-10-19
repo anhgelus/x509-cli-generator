@@ -9,8 +9,12 @@ x509 <common_name> [options]
 Usage of options:
   -can-sign
         if the certificate can sign
-  -ext int
-        x509 extension key usage (Go int) (default -1)
+  -ext value
+        x509 extension key usage (Go int)
+  -not-after value
+        certificate cannot be used after this relative date (default: 30d)
+  -not-before value
+        certificate cannot be used before this relative date
   -p224
         use a P-226 curve
   -p256
