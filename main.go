@@ -36,6 +36,8 @@ func main() {
 	flags.Var(&notAfter, "not-after", "certificate cannot be used after this relative date (default: 30d)")
 	var notBefore Duration
 	flags.Var(&notBefore, "not-before", "certificate cannot be used before this relative date")
+	var dns Slice[string]
+	flags.Var(&dns, "dns", "DNS Names authorized for this certificate")
 	if len(os.Args) != 2 {
 		_ = flags.Parse(os.Args[2:])
 	}
@@ -89,6 +91,7 @@ func main() {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		NotBefore:             now.Add(notBefore.dur),
 		NotAfter:              now.Add(notAfter.dur),
+		DNSNames:              dns.Content,
 	}
 	if templ.IsCA {
 		templ.KeyUsage |= x509.KeyUsageCertSign

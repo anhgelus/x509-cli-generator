@@ -9,6 +9,8 @@ x509 <common_name> [options]
 Usage of options:
   -can-sign
         if the certificate can sign
+  -dns value
+        DNS Names authorized for this certificate
   -ext value
         x509 extension key usage (Go int)
   -not-after value
