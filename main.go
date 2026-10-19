@@ -25,7 +25,8 @@ func main() {
 	flags := flag.NewFlagSet("options", flag.ExitOnError)
 	pathParent := flags.String("parent", "", "path to the PEM encoded parent")
 	ca := flags.Bool("can-sign", false, "if the certificate can sign")
-	ext := flags.Int("ext", -1, "x509 extension key usage (Go int)")
+	var ext Slice[int]
+	flags.Var(&ext, "ext", "x509 extension key usage (Go int)")
 	is224 := flags.Bool("p224", false, "use a P-226 curve")
 	_ = flags.Bool("p256", false, "use a P-256 curve (default)")
 	is384 := flags.Bool("p384", false, "use a P-384 curve")
@@ -81,8 +82,11 @@ func main() {
 	if templ.IsCA {
 		templ.KeyUsage |= x509.KeyUsageCertSign
 	}
-	if *ext != -1 {
-		templ.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsage(*ext)}
+	if ext.Content != nil {
+		templ.ExtKeyUsage = make([]x509.ExtKeyUsage, 0, len(ext.Content))
+		for _, v := range ext.Content {
+			templ.ExtKeyUsage = append(templ.ExtKeyUsage, x509.ExtKeyUsage(v))
+		}
 	}
 	priv, err := ecdsa.GenerateKey(curve, nil)
 	if err != nil {
